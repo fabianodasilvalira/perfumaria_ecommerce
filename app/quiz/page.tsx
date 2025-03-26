@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { getRecommendedProducts } from "@/lib/product-service"
 import { ProductGrid } from "@/components/product-grid"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 export default function QuizPage() {
   const [currentStep, setCurrentStep] = useState(0)
@@ -68,19 +68,33 @@ export default function QuizPage() {
     },
   ]
 
+  // Efeito para avançar automaticamente quando uma resposta é selecionada
+  useEffect(() => {
+    // Verifica se a pergunta atual tem resposta
+    if (answers[questions[currentStep]?.id] && currentStep < questions.length - 1) {
+      // Pequeno atraso para dar feedback visual ao usuário
+      const timer = setTimeout(() => {
+        setCurrentStep(currentStep + 1)
+      }, 300)
+
+      return () => clearTimeout(timer)
+    }
+
+    // Se for a última pergunta e tiver resposta, mostrar resultados
+    if (answers[questions[currentStep]?.id] && currentStep === questions.length - 1) {
+      const timer = setTimeout(() => {
+        setShowResults(true)
+      }, 300)
+
+      return () => clearTimeout(timer)
+    }
+  }, [answers, currentStep, questions])
+
   const handleAnswer = (value: string) => {
     setAnswers({
       ...answers,
       [questions[currentStep].id]: value,
     })
-  }
-
-  const handleNext = () => {
-    if (currentStep < questions.length - 1) {
-      setCurrentStep(currentStep + 1)
-    } else {
-      setShowResults(true)
-    }
   }
 
   const handlePrevious = () => {
@@ -135,10 +149,12 @@ export default function QuizPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Anterior
               </Button>
-              <Button onClick={handleNext} disabled={!answers[currentQuestion.id]}>
-                {currentStep === questions.length - 1 ? "Ver Resultados" : "Próxima"}
-                {currentStep !== questions.length - 1 && <ArrowRight className="ml-2 h-4 w-4" />}
-              </Button>
+              {/* Mantemos o botão para casos onde o usuário queira revisar antes de avançar */}
+              <div className="text-sm text-muted-foreground">
+                {currentStep < questions.length - 1
+                  ? "Selecione uma opção para avançar"
+                  : "Selecione para ver resultados"}
+              </div>
             </CardFooter>
           </Card>
         ) : (

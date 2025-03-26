@@ -1,35 +1,152 @@
 "use client"
 
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { useEffect, useState, useCallback } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { getAllProducts } from "@/lib/product-service"
 
-// Atualizar a interface para aceitar uma categoria padrão
 interface ProductFilterProps {
   defaultCategory?: string
 }
 
-// Atualizar a assinatura da função para usar a prop
 export function ProductFilter({ defaultCategory }: ProductFilterProps = {}) {
-  const [priceRange, setPriceRange] = useState([0, 500])
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  // Adicionar estado para as categorias selecionadas
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(defaultCategory ? [defaultCategory] : [])
+  // Estado para os filtros
+  const [priceRange, setPriceRange] = useState<number[]>([0, 500])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedScentFamilies, setSelectedScentFamilies] = useState<string[]>([])
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Adicionar função para lidar com a mudança de categoria
-  const handleCategoryChange = (category: string) => {
+  // Obter marcas e famílias olfativas únicas dos produtos
+  const allProducts = getAllProducts()
+  const brands = [...new Set(allProducts.map((product) => product.brand))].sort()
+  const scentFamilies = [...new Set(allProducts.map((product) => product.scentFamily).filter(Boolean))].sort()
+
+  // Inicializar filtros a partir dos parâmetros da URL
+  useEffect(() => {
+    if (isInitialized) return
+
+    const params = new URLSearchParams(searchParams.toString())
+
+    // Categorias
+    const categoryParam = params.get("categoria")
+    if (categoryParam) {
+      const categories = categoryParam.split(",")
+      setSelectedCategories(categories)
+    } else if (defaultCategory) {
+      setSelectedCategories([defaultCategory])
+    }
+
+    // Marcas
+    const brandParam = params.get("marca")
+    if (brandParam) {
+      const brands = brandParam.split(",")
+      setSelectedBrands(brands)
+    }
+
+    // Famílias olfativas
+    const scentParam = params.get("familia")
+    if (scentParam) {
+      const scents = scentParam.split(",")
+      setSelectedScentFamilies(scents)
+    }
+
+    // Preço
+    const minPrice = params.get("precoMin")
+    const maxPrice = params.get("precoMax")
+    if (minPrice && maxPrice) {
+      setPriceRange([Number.parseInt(minPrice), Number.parseInt(maxPrice)])
+    }
+
+    setIsInitialized(true)
+  }, [searchParams, defaultCategory, isInitialized])
+
+  // Função para aplicar os filtros
+  const applyFilters = useCallback(() => {
+    // Criar uma nova instância de URLSearchParams para não modificar a original
+    const currentParams = new URLSearchParams(searchParams.toString())
+
+    // Atualizar os parâmetros de filtro
+
+    // Categorias
+    currentParams.delete("categoria")
+    if (selectedCategories.length > 0) {
+      currentParams.set("categoria", selectedCategories.join(","))
+    }
+
+    // Marcas
+    currentParams.delete("marca")
+    if (selectedBrands.length > 0) {
+      currentParams.set("marca", selectedBrands.join(","))
+    }
+
+    // Famílias olfativas
+    currentParams.delete("familia")
+    if (selectedScentFamilies.length > 0) {
+      currentParams.set("familia", selectedScentFamilies.join(","))
+    }
+
+    // Preço
+    currentParams.set("precoMin", priceRange[0].toString())
+    currentParams.set("precoMax", priceRange[1].toString())
+
+    // Navegar para a URL com os filtros, mantendo o pathname atual
+    router.push(`${pathname}?${currentParams.toString()}`)
+  }, [router, pathname, searchParams, selectedCategories, selectedBrands, selectedScentFamilies, priceRange])
+
+  // Função para limpar todos os filtros
+  const clearFilters = useCallback(() => {
+    setSelectedCategories(defaultCategory ? [defaultCategory] : [])
+    setSelectedBrands([])
+    setSelectedScentFamilies([])
+    setPriceRange([0, 500])
+
+    // Manter apenas os parâmetros não relacionados aos filtros
+    const currentParams = new URLSearchParams(searchParams.toString())
+
+    // Remover todos os parâmetros de filtro
+    currentParams.delete("categoria")
+    currentParams.delete("marca")
+    currentParams.delete("familia")
+    currentParams.delete("precoMin")
+    currentParams.delete("precoMax")
+
+    // Adicionar categoria padrão se existir
+    if (defaultCategory) {
+      currentParams.set("categoria", defaultCategory)
+    }
+
+    router.push(`${pathname}?${currentParams.toString()}`)
+  }, [router, pathname, searchParams, defaultCategory])
+
+  // Funções para manipular mudanças nos filtros
+  const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategories((prev) =>
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
     )
-  }
+  }, [])
+
+  const handleBrandChange = useCallback((brand: string) => {
+    setSelectedBrands((prev) => (prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]))
+  }, [])
+
+  const handleScentFamilyChange = useCallback((family: string) => {
+    setSelectedScentFamilies((prev) => (prev.includes(family) ? prev.filter((f) => f !== family) : [...prev, family]))
+  }, [])
 
   return (
     <div className="space-y-4">
       <div className="font-medium">Filtros</div>
 
-      <Accordion type="multiple" defaultValue={["category", "price", "brand"]} className="w-full">
+      <Accordion type="multiple" defaultValue={["category", "price", "brand", "scent"]} className="w-full">
         <AccordionItem value="category">
           <AccordionTrigger>Categoria</AccordionTrigger>
           <AccordionContent>
@@ -74,7 +191,7 @@ export function ProductFilter({ defaultCategory }: ProductFilterProps = {}) {
           <AccordionTrigger>Preço</AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4">
-              <Slider defaultValue={[0, 500]} max={500} step={10} value={priceRange} onValueChange={setPriceRange} />
+              <Slider min={0} max={500} step={10} value={priceRange} onValueChange={setPriceRange} />
               <div className="flex items-center justify-between">
                 <span className="text-sm">R$ {priceRange[0]}</span>
                 <span className="text-sm">R$ {priceRange[1]}</span>
@@ -86,31 +203,50 @@ export function ProductFilter({ defaultCategory }: ProductFilterProps = {}) {
         <AccordionItem value="brand">
           <AccordionTrigger>Marca</AccordionTrigger>
           <AccordionContent>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="brand1" />
-                <Label htmlFor="brand1">Dior</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="brand2" />
-                <Label htmlFor="brand2">Chanel</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="brand3" />
-                <Label htmlFor="brand3">Calvin Klein</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="brand4" />
-                <Label htmlFor="brand4">Hugo Boss</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="brand5" />
-                <Label htmlFor="brand5">Versace</Label>
-              </div>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+              {brands.map((brand) => (
+                <div key={brand} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`brand-${brand}`}
+                    checked={selectedBrands.includes(brand)}
+                    onCheckedChange={() => handleBrandChange(brand)}
+                  />
+                  <Label htmlFor={`brand-${brand}`}>{brand}</Label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="scent">
+          <AccordionTrigger>Família Olfativa</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+              {scentFamilies.map((family) => (
+                <div key={family} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`scent-${family}`}
+                    checked={selectedScentFamilies.includes(family)}
+                    onCheckedChange={() => handleScentFamilyChange(family)}
+                  />
+                  <Label htmlFor={`scent-${family}`} className="capitalize">
+                    {family}
+                  </Label>
+                </div>
+              ))}
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      <div className="flex flex-col gap-2 pt-2">
+        <Button onClick={applyFilters} className="w-full">
+          Aplicar Filtros
+        </Button>
+        <Button variant="outline" onClick={clearFilters} className="w-full">
+          Limpar Filtros
+        </Button>
+      </div>
     </div>
   )
 }

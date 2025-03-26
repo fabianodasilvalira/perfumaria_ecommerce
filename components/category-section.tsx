@@ -1,6 +1,9 @@
+"use client"
+
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
+import { motion } from "framer-motion"
 
 export function CategorySection() {
   const categories = [
@@ -30,37 +33,66 @@ export function CategorySection() {
     },
   ]
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 },
+  }
+
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-6">
       <h2 className="text-2xl font-bold tracking-tight">Categorias</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {categories.map((category) => (
-          <Link
-            key={category.id}
-            href={
-              category.id === "masculino"
-                ? "/masculinos"
-                : category.id === "feminino"
-                  ? "/femininos"
-                  : category.id === "unissex"
-                    ? "/unissex"
-                    : `/produtos?categoria=${category.id}`
-            }
-          >
-            <Card className="overflow-hidden h-full transition-all hover:shadow-md">
-              <div className="aspect-square relative bg-muted">
-                <Image src={category.image || "/placeholder.svg"} alt={category.name} fill className="object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                  <CardContent className="p-4 text-white">
-                    <h3 className="font-semibold">{category.name}</h3>
-                    <p className="text-sm text-white/80 mt-1">{category.description}</p>
-                  </CardContent>
+          <motion.div key={category.id} variants={item}>
+            <Link
+              href={
+                category.id === "masculino"
+                  ? "/masculinos"
+                  : category.id === "feminino"
+                    ? "/femininos"
+                    : category.id === "unissex"
+                      ? "/unissex"
+                      : `/produtos?categoria=${category.id}`
+              }
+            >
+              <Card className="overflow-hidden h-full transition-all hover:shadow-lg group">
+                <div className="aspect-square relative bg-muted">
+                  <Image
+                    src={category.image || "/placeholder.svg"}
+                    alt={category.name}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end">
+                    <CardContent className="p-4 text-white relative z-10">
+                      <h3 className="font-semibold text-lg">{category.name}</h3>
+                      <p className="text-sm text-white/90 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {category.description}
+                      </p>
+                    </CardContent>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   )
 }

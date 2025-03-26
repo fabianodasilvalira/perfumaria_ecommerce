@@ -3,21 +3,63 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Heart, Menu, Search, ShoppingBag, User, Sparkles, Info, Map, FileText, Percent, Ticket } from "lucide-react"
+import {
+  Heart,
+  Menu,
+  Search,
+  ShoppingBag,
+  User,
+  Sparkles,
+  Map,
+  FileText,
+  Percent,
+  Ticket,
+  ChevronDown,
+} from "lucide-react"
 import { useCart } from "@/context/cart-context"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { MobileNav } from "./mobile-nav"
 import { Badge } from "./ui/badge"
 import { SearchDialog } from "./search-dialog"
 import { useFavorites } from "@/context/favorites-context"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useMenu } from "@/context/menu-context"
 
 export default function Header() {
   const { itemCount } = useCart()
   const { favoriteCount } = useFavorites()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const { openMenu, toggleMenu } = useMenu()
+
+  // Refs para os botões de dropdown
+  const productsButtonRef = useRef<HTMLButtonElement>(null)
+  const moreButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Detectar scroll para mudar a aparência do header
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Efeito para simular clique no botão quando o menu é aberto externamente
+  useEffect(() => {
+    if (openMenu === "products" && productsButtonRef.current) {
+      productsButtonRef.current.click()
+    } else if (openMenu === "more" && moreButtonRef.current) {
+      moreButtonRef.current.click()
+    }
+  }, [openMenu])
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        scrolled ? "bg-background/95 backdrop-blur-md shadow-sm" : "bg-background"
+      }`}
+    >
       <div className="container flex h-16 items-center px-4">
         <Sheet>
           <SheetTrigger asChild>
@@ -32,41 +74,66 @@ export default function Header() {
         </Sheet>
 
         <Link href="/" className="mr-4 flex items-center space-x-2">
-          <span className="text-xl font-bold">Essence</span>
+          <span className="text-xl font-bold bg-gradient-to-r from-primary to-pink-600 bg-clip-text text-transparent">
+            Essence
+          </span>
         </Link>
 
-        <nav className="hidden md:flex gap-6 ml-6 overflow-x-auto">
-          <Link href="/" className="text-sm font-medium transition-colors hover:text-primary whitespace-nowrap">
+        <nav className="hidden md:flex gap-4 ml-4 overflow-x-auto">
+          <Link
+            href="/"
+            className="text-sm font-medium transition-colors hover:text-primary whitespace-nowrap px-2 py-1"
+          >
             Início
           </Link>
-          <Link
-            href="/masculinos"
-            className="text-sm font-medium transition-colors hover:text-primary whitespace-nowrap"
-          >
-            Masculinos
-          </Link>
-          <Link
-            href="/femininos"
-            className="text-sm font-medium transition-colors hover:text-primary whitespace-nowrap"
-          >
-            Femininos
-          </Link>
-          <Link href="/unissex" className="text-sm font-medium transition-colors hover:text-primary whitespace-nowrap">
-            Unissex
-          </Link>
-          <Link href="/produtos" className="text-sm font-medium transition-colors hover:text-primary whitespace-nowrap">
-            Todos os Produtos
-          </Link>
+
+          <DropdownMenu onOpenChange={(open) => !open && openMenu === "products" && toggleMenu(null)}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                ref={productsButtonRef}
+                variant="ghost"
+                className="px-2 py-1 h-auto font-medium text-sm flex items-center gap-1"
+                onClick={() => toggleMenu("products")}
+              >
+                Produtos
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/masculinos" className="cursor-pointer w-full">
+                  Masculinos
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/femininos" className="cursor-pointer w-full">
+                  Femininos
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/unissex" className="cursor-pointer w-full">
+                  Unissex
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/produtos" className="cursor-pointer w-full">
+                  Todos os Produtos
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Link
             href="/promocoes"
-            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap"
+            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap bg-primary/10 px-3 py-1 rounded-full text-primary"
           >
             <Percent className="h-4 w-4 mr-1" />
             Promoções
           </Link>
+
           <Link
             href="/cupons"
-            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap"
+            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap px-2 py-1"
           >
             <Ticket className="h-4 w-4 mr-1" />
             Cupons
@@ -74,43 +141,69 @@ export default function Header() {
               Novo
             </Badge>
           </Link>
+
           <Link
             href="/mapa-olfativo"
-            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap"
+            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap px-2 py-1"
           >
             <Map className="h-4 w-4 mr-1" />
             Mapa Olfativo
           </Link>
+
           <Link
             href="/quiz"
-            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap"
+            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap px-2 py-1"
           >
             <Sparkles className="h-4 w-4 mr-1" />
             Quiz
           </Link>
-          <Link
-            href="/sobre"
-            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap"
-          >
-            <Info className="h-4 w-4 mr-1" />
-            Quem Somos
-          </Link>
-          <Link
-            href="/api-docs"
-            className="text-sm font-medium transition-colors hover:text-primary flex items-center whitespace-nowrap"
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            API Docs
-          </Link>
+
+          <DropdownMenu onOpenChange={(open) => !open && openMenu === "more" && toggleMenu(null)}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                ref={moreButtonRef}
+                variant="ghost"
+                className="px-2 py-1 h-auto font-medium text-sm flex items-center gap-1"
+                onClick={() => toggleMenu("more")}
+              >
+                Mais
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/sobre" className="cursor-pointer w-full flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Quem Somos
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/api-docs" className="cursor-pointer w-full flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  API Docs
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         <div className="flex items-center ml-auto gap-2 md:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSearchOpen(true)}
+            className="hover:bg-primary/10 hover:text-primary transition-colors"
+          >
             <Search className="h-5 w-5" />
             <span className="sr-only">Buscar</span>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="relative hover:bg-primary/10 hover:text-primary transition-colors"
+          >
             <Link href="/favoritos">
               <Heart className="h-5 w-5" />
               {favoriteCount > 0 && (
@@ -122,14 +215,24 @@ export default function Header() {
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="hover:bg-primary/10 hover:text-primary transition-colors"
+          >
             <Link href="/perfil">
               <User className="h-5 w-5" />
               <span className="sr-only">Perfil</span>
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="relative hover:bg-primary/10 hover:text-primary transition-colors"
+          >
             <Link href="/carrinho">
               <ShoppingBag className="h-5 w-5" />
               {itemCount > 0 && (

@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronDown, ChevronRight, Copy, ExternalLink, Lock, Play } from "lucide-react"
+import { ChevronDown, ChevronRight, Copy, ExternalLink, Lock } from "lucide-react"
 import { useState } from "react"
-import { toast } from "@/hooks/use-toast"
-import { ApiPlayground } from "./api-playground"
+import { useToast } from "@/components/ui/use-toast"
+import { ApiPlayground } from "@/components/api-playground"
 
 interface ApiEndpointProps {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
@@ -22,6 +22,7 @@ interface ApiEndpointProps {
   statusCodes: Array<{ code: number; description: string }>
   authentication?: boolean
   adminOnly?: boolean
+  requiredFields?: string[]
 }
 
 export function ApiEndpoint({
@@ -36,10 +37,11 @@ export function ApiEndpoint({
   statusCodes,
   authentication = false,
   adminOnly = false,
+  requiredFields = [],
 }: ApiEndpointProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
-  const [showPlayground, setShowPlayground] = useState(false)
+  const { toast } = useToast()
 
   const getMethodColor = (method: string) => {
     switch (method) {
@@ -123,8 +125,57 @@ export function ApiEndpoint({
     return code
   }
 
+  // Função para renderizar campos aninhados com descrições - reescrita para evitar problemas
+  const renderFields = (obj: any) => {
+    if (!obj) return null
+
+    return (
+      <div className="space-y-2">
+        {Object.entries(obj).map(([key, value], index) => {
+          const isRequired = requiredFields.includes(key)
+          const isObject = typeof value === "object" && value !== null && !Array.isArray(value)
+          const isArray = Array.isArray(value)
+
+          if (isObject) {
+            return (
+              <div key={`${key}-${index}`} className="mt-1">
+                <div className="font-medium text-xs pl-4 py-1 bg-muted/50 rounded-sm flex items-center">
+                  <span>{key}</span>
+                  {isRequired && <span className="text-red-500 ml-1">*</span>}
+                </div>
+                <div className="pl-2 border-l-2 border-muted ml-4 mt-1">{renderFields(value)}</div>
+              </div>
+            )
+          } else if (isArray && value.length > 0 && typeof value[0] === "object") {
+            return (
+              <div key={`${key}-${index}`} className="mt-1">
+                <div className="font-medium text-xs pl-4 py-1 bg-muted/50 rounded-sm flex items-center">
+                  <span>{key} (Array)</span>
+                  {isRequired && <span className="text-red-500 ml-1">*</span>}
+                </div>
+                <div className="pl-2 border-l-2 border-muted ml-4 mt-1">
+                  {value.length > 0 && typeof value[0] === "object" ? renderFields(value[0]) : null}
+                </div>
+              </div>
+            )
+          } else {
+            return (
+              <div key={`${key}-${index}`} className="grid grid-cols-2 gap-2 pl-4">
+                <span className="font-mono text-xs flex items-center">
+                  <span>{key}</span>
+                  {isRequired && <span className="text-red-500 ml-1">*</span>}
+                </span>
+                <span className="text-xs text-muted-foreground">{String(value)}</span>
+              </div>
+            )
+          }
+        })}
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-2 border rounded-lg p-4 bg-card">
+    <div className="space-y-2 border rounded-lg p-4 bg-card hover:shadow-md transition-all">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -142,7 +193,11 @@ export function ApiEndpoint({
         </div>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 hover:bg-primary/10 hover:text-primary transition-colors"
+            >
               {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               {isOpen ? "Ocultar detalhes" : "Ver detalhes"}
             </Button>
@@ -152,19 +207,25 @@ export function ApiEndpoint({
 
       <div className="flex items-center justify-between font-mono text-sm bg-muted p-2 rounded-md overflow-x-auto">
         <code className="text-xs md:text-sm">{path}</code>
-        <Button variant="ghost" size="sm" className="h-8" onClick={() => copyToClipboard(path)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 hover:bg-primary/10 hover:text-primary transition-colors"
+          onClick={() => copyToClipboard(path)}
+        >
           <Copy className="h-3.5 w-3.5" />
         </Button>
       </div>
 
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleContent className="space-y-4 mt-4">
+        <CollapsibleContent className="space-y-4 mt-4 animate-in slide-in-from-top-5 duration-300">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-4 mb-4">
+            <TabsList className="grid grid-cols-5 mb-4">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="parameters">Parâmetros</TabsTrigger>
               <TabsTrigger value="responses">Respostas</TabsTrigger>
               <TabsTrigger value="code">Código</TabsTrigger>
+              <TabsTrigger value="playground">Playground</TabsTrigger>
             </TabsList>
 
             {/* Visão Geral */}
@@ -204,6 +265,23 @@ export function ApiEndpoint({
                   </CardContent>
                 </Card>
               </div>
+
+              {requiredFields && requiredFields.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Campos Obrigatórios</h4>
+                  <Card>
+                    <CardContent className="p-4">
+                      <ul className="space-y-1">
+                        {requiredFields.map((field) => (
+                          <li key={field} className="text-sm">
+                            <code className="text-xs bg-muted px-1 py-0.5 rounded">{field}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </TabsContent>
 
             {/* Parâmetros */}
@@ -252,14 +330,18 @@ export function ApiEndpoint({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-2 right-2"
+                        className="absolute top-2 right-2 hover:bg-primary/10 hover:text-primary transition-colors"
                         onClick={() => copyToClipboard(JSON.stringify(requestBody, null, 2))}
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
-                      <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto">
-                        {JSON.stringify(requestBody, null, 2)}
-                      </pre>
+                      {renderFields(requestBody)}
+
+                      {requiredFields.length > 0 && (
+                        <div className="mt-4 text-xs text-muted-foreground">
+                          <span className="text-red-500">*</span> Campos obrigatórios
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -282,14 +364,12 @@ export function ApiEndpoint({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-2 right-2"
+                        className="absolute top-2 right-2 hover:bg-primary/10 hover:text-primary transition-colors"
                         onClick={() => copyToClipboard(JSON.stringify(responseBody, null, 2))}
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
-                      <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto">
-                        {JSON.stringify(responseBody, null, 2)}
-                      </pre>
+                      {renderFields(responseBody)}
                     </CardContent>
                   </Card>
                 </div>
@@ -310,7 +390,7 @@ export function ApiEndpoint({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8"
+                    className="h-8 hover:bg-primary/10 hover:text-primary transition-colors"
                     onClick={() => copyToClipboard(generateRequestExample())}
                   >
                     <Copy className="h-3.5 w-3.5 mr-1" />
@@ -330,26 +410,19 @@ export function ApiEndpoint({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 mr-2"
-                  onClick={() => window.open("https://www.postman.com", "_blank")}
+                  className="gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Testar no Postman
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => setShowPlayground(!showPlayground)}
-                >
-                  <Play className="h-4 w-4" />
-                  {showPlayground ? "Ocultar Playground" : "Testar no Playground"}
-                </Button>
               </div>
             </TabsContent>
-          </Tabs>
 
-          {showPlayground && <ApiPlayground method={method} path={path} requestBody={requestBody} />}
+            {/* Playground */}
+            <TabsContent value="playground" className="space-y-4">
+              <ApiPlayground method={method} path={path} requestBody={requestBody} />
+            </TabsContent>
+          </Tabs>
         </CollapsibleContent>
       </Collapsible>
     </div>

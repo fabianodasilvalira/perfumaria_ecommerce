@@ -1,5 +1,4 @@
 import { ApiEndpoint } from "@/components/api-endpoint"
-import { Separator } from "@/components/ui/separator"
 
 export function ApiEndpointsPromocoes() {
   return (
@@ -7,76 +6,78 @@ export function ApiEndpointsPromocoes() {
       <ApiEndpoint
         method="GET"
         path="/api/promocoes"
-        title="Listar produtos em promoção"
-        description="Retorna uma lista de produtos com desconto ativo"
+        title="Listar promoções"
+        description="Retorna a lista de promoções ativas"
         queryParams={{
           page: "Número da página (padrão: 1)",
-          limit: "Itens por página (padrão: 20, max: 50)",
-          minDiscount: "Desconto mínimo em percentual (opcional)",
-          maxDiscount: "Desconto máximo em percentual (opcional)",
-          category: "Filtrar por categoria (opcional)",
-          brand: "Filtrar por marca (opcional)",
-          sort: "Ordenação (discount_desc, discount_asc, price_asc, price_desc)",
+          limit: "Itens por página (padrão: 20)",
+          ativas: "Filtrar por status (true/false)",
         }}
         responseBody={{
-          products: [
+          promocoes: [
             {
-              id: "ID do produto",
-              name: "Nome do produto",
-              description: "Descrição curta",
-              originalPrice: "Preço original",
-              discountedPrice: "Preço com desconto",
-              discountPercentage: "Percentual de desconto",
-              category: "Categoria",
-              brand: "Marca",
-              images: ["URLs das imagens"],
-              rating: "Avaliação média",
+              id: "ID da promoção",
+              nome: "Nome da promoção",
+              descricao: "Descrição da promoção",
+              tipoDesconto: "Tipo de desconto (percentual, valor_fixo)",
+              valorDesconto: "Valor do desconto",
+              dataInicio: "Data de início",
+              dataFim: "Data de término (se houver)",
+              ativa: "Status da promoção",
+              produtos: ["IDs dos produtos em promoção"],
+              categorias: ["Categorias em promoção"],
             },
           ],
-          pagination: {
-            total: "Total de produtos",
-            pages: "Total de páginas",
-            page: "Página atual",
-            limit: "Itens por página",
-          },
-        }}
-        statusCodes={[{ code: 200, description: "Sucesso" }]}
-      />
-
-      <Separator className="my-6" />
-
-      <ApiEndpoint
-        method="GET"
-        path="/api/promocoes/{id}"
-        title="Obter produto em promoção"
-        description="Retorna os detalhes de um produto específico em promoção"
-        pathParams={{
-          id: "ID do produto",
-        }}
-        responseBody={{
-          id: "ID do produto",
-          name: "Nome do produto",
-          description: "Descrição curta",
-          fullDescription: "Descrição completa",
-          originalPrice: "Preço original",
-          discountedPrice: "Preço com desconto",
-          discountPercentage: "Percentual de desconto",
-          discountStartDate: "Data de início da promoção",
-          discountEndDate: "Data de término da promoção (opcional)",
-          category: "Categoria",
-          brand: "Marca",
-          images: ["URLs das imagens"],
-          rating: "Avaliação média",
-          reviewCount: "Número de avaliações",
-          stock: {
-            "50ml": "Quantidade em estoque",
-            "100ml": "Quantidade em estoque",
+          paginacao: {
+            total: "Total de promoções",
+            pagina: "Página atual",
+            totalPaginas: "Total de páginas",
           },
         }}
         statusCodes={[
           { code: 200, description: "Sucesso" },
-          { code: 404, description: "Produto não encontrado" },
+          { code: 401, description: "Não autenticado" },
         ]}
+        authentication={true}
+      />
+
+      <ApiEndpoint
+        method="POST"
+        path="/api/promocoes"
+        title="Criar promoção"
+        description="Cria uma nova promoção"
+        requestBody={{
+          nome: "Nome da promoção",
+          descricao: "Descrição da promoção",
+          tipoDesconto: "Tipo de desconto (percentual, valor_fixo)",
+          valorDesconto: "Valor do desconto",
+          dataInicio: "Data de início (formato ISO)",
+          dataFim: "Data de término (opcional, formato ISO)",
+          ativa: "Status inicial da promoção (true/false)",
+          produtos: ["IDs dos produtos em promoção (opcional)"],
+          categorias: ["Categorias em promoção (opcional)"],
+        }}
+        responseBody={{
+          id: "ID da promoção criada",
+          nome: "Nome da promoção",
+          descricao: "Descrição da promoção",
+          tipoDesconto: "Tipo de desconto",
+          valorDesconto: "Valor do desconto",
+          dataInicio: "Data de início",
+          dataFim: "Data de término",
+          ativa: "Status da promoção",
+          produtos: ["IDs dos produtos aplicados"],
+          categorias: ["Categorias aplicadas"],
+        }}
+        statusCodes={[
+          { code: 201, description: "Promoção criada" },
+          { code: 400, description: "Dados inválidos" },
+          { code: 401, description: "Não autenticado" },
+          { code: 403, description: "Não autorizado" },
+        ]}
+        authentication={true}
+        adminOnly={true}
+        requiredFields={["nome", "descricao", "tipoDesconto", "valorDesconto", "dataInicio"]}
       />
     </>
   )

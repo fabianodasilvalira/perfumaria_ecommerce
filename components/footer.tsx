@@ -1,7 +1,23 @@
+"use client"
+
 import Link from "next/link"
 import { Facebook, Instagram, Twitter, FileText, Ticket } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function Footer() {
+  const router = useRouter()
+
+  const handleNavigation = (path: string) => {
+    // Navegar para a página
+    router.push(path)
+
+    // Rolar para o topo da página
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
+  }
+
   return (
     <footer className="border-t bg-background">
       <div className="container px-4 md:px-6 py-8">
@@ -28,59 +44,86 @@ export default function Footer() {
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold">Navegação</h3>
             <nav className="flex flex-col gap-2">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => handleNavigation("/")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Início
-              </Link>
-              <Link href="/produtos" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/produtos")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Produtos
-              </Link>
-              <Link href="/promocoes" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/promocoes")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Promoções
-              </Link>
-              <Link
-                href="/cupons"
-                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              </button>
+              <button
+                onClick={() => handleNavigation("/cupons")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left flex items-center gap-1"
               >
                 <Ticket className="h-3 w-3" />
                 Cupons de Desconto
-              </Link>
-              <Link href="/sobre" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/sobre")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Quem Somos
-              </Link>
-              <Link href="/quiz" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/quiz")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Quiz de Perfumes
-              </Link>
-              <Link href="/mapa-olfativo" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/mapa-olfativo")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Mapa Olfativo
-              </Link>
-              <Link
-                href="/api-docs"
-                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              </button>
+              <button
+                onClick={() => handleNavigation("/api-docs")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left flex items-center gap-1"
               >
                 <FileText className="h-3 w-3" />
                 API Docs
-              </Link>
+              </button>
             </nav>
           </div>
 
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold">Categorias</h3>
             <nav className="flex flex-col gap-2">
-              <Link
-                href="/produtos?categoria=masculino"
-                className="text-sm text-muted-foreground hover:text-foreground"
+              <button
+                onClick={() => handleNavigation("/masculinos")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
               >
                 Perfumes Masculinos
-              </Link>
-              <Link href="/produtos?categoria=feminino" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/femininos")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Perfumes Femininos
-              </Link>
-              <Link href="/produtos?categoria=unissex" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/unissex")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Perfumes Unissex
-              </Link>
-              <Link href="/produtos?categoria=kits" className="text-sm text-muted-foreground hover:text-foreground">
+              </button>
+              <button
+                onClick={() => handleNavigation("/produtos?categoria=kits")}
+                className="text-sm text-muted-foreground hover:text-foreground text-left"
+              >
                 Kits de Presente
-              </Link>
+              </button>
             </nav>
           </div>
 
@@ -95,12 +138,12 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-8 pt-4 border-t text-sm text-muted-foreground">
           <p>© 2025 Essence. Todos os direitos reservados.</p>
           <div className="flex gap-4">
-            <Link href="/termos" className="hover:text-foreground">
+            <button onClick={() => handleNavigation("/termos")} className="hover:text-foreground">
               Termos de Uso
-            </Link>
-            <Link href="/privacidade" className="hover:text-foreground">
+            </button>
+            <button onClick={() => handleNavigation("/privacidade")} className="hover:text-foreground">
               Política de Privacidade
-            </Link>
+            </button>
           </div>
         </div>
       </div>
